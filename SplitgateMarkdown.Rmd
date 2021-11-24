@@ -1,0 +1,230 @@
+---
+title: "Splitgate Report"
+author: "Ryan Poertner"
+date: "11/23/2021"
+output: html_document
+
+params:
+  main_data: "split_big.csv"
+  ranked_data: "split_ranked.csv"
+  casual_data: "split_casual.csv"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Research Question
+## Understanding the phenomenon
+
+**background:** Video game
+
+**goal:** To determine what in-game behaviors influence the odds of winning a match in Splitgate.
+
+
+# Dataset
+## Response
+
+**Win: ** Whether or not the subject won the match. This is binary in nature.
+
+## Explanatory
+
+**Kills: **how many kills the subject had in a match
+
+**Deaths: **how many times the subject died in a match
+
+**Assists: **how many times the subject contributed to killing an opponent without landing the killing shot in a match.
+
+**Headshots Landed: **how many headshots the subject landed on the opposing side.
+
+**Kills Per Minute: **how many kills the subject had per minute.
+
+**Distance Portaled: **cumulative distance traveled by subject(in Meters).
+
+**Portals Spawned: **how many portals the subject created.
+
+**Damage Dealt: **how much damage the subject dealt(in points).
+
+# Exploration of Data
+
+
+```{r echo = FALSE}
+  all_data <- read.csv(params$main_data)
+  ranked_data <- read.csv(params$ranked_data)
+  casual_data <- read.csv(params$casual_data)
+```
+
+The majority of the data appeared either linear or ambiguous in distribution, so I did not perform any transformations. however, I did notice a handful of outliers in headshots landed and distance portaled, so I subsetted the data based on that.
+
+
+```{r echo = FALSE}
+  plot(~Kills+Deaths+Assists+headshotsLanded+killsPerMinute+
+       distancePortaled+portalsSpawned+damageDealt,data=all_data)
+
+```
+
+```{r echo = FALSE}
+
+    knitr::kable(summary(all_data)[,-1], caption = "Table of 5 number summary")
+```
+
+## SLLR Model
+
+```{r echo = FALSE}
+
+set.seed(121)
+train_rows <- sample(length(all_data$Kills), length(all_data$Kills) - (length(all_data$Kills)/3))
+split_train <- all_data[train_rows, ]
+split_test <- all_data[-train_rows, ]
+
+    data_out <- glm(Win~Kills +  
+                   Deaths + 
+                   Assists +
+                   headshotsLanded + 
+                   killsPerMinute + 
+                   distancePortaled +
+                   portalsSpawned +
+                   damageDealt, 
+                 data = split_train, family = "binomial")
+    
+    knitr::kable(summary(data_out)$coefficients[-1,], caption = "Table of Estimates and Std. Errors")
+    knitr::kable(exp(coef(data_out))[-1], caption = "Table of probability coefficients")
+    knitr::kable(exp(suppressMessages(confint(data_out)))[-1,], caption = "Table of confidence intervals")
+    
+```
+
+# Analysis
+
+## Hypothesis Testing
+
+### Kills
+
+**Ho:** There is no statistically significant Kills effect on odds of winning.
+
+**Ha:** There is a statistically significant Kills effect on odds of winning.
+
+**z value:** 2.095
+
+**p-value: ** .0362
+
+**Formal Conclusion:** We reject Ho in favor of Ha: There is a statistically significant Kills effect on odds of winning at the .05 confidence level.
+
+**Informal Conclusion:** There is a statistically significant Kills effect on odds of winning(p-value = .0362).
+
+**Effect: ** Holding all else constant, for a one unit increase in Kills we estimate an expected 28.9% increase in odds of winning(95% CI: 2.2, 65.3).
+
+### Deaths
+
+**Ho:**There is no statistically significant Deaths effect on odds of winning.
+
+**Ha:**There is a statistically significant Deaths effect on odds of winning.
+
+**z value:** -3.807
+
+**p-value: **.000141
+
+**Formal:** We reject Ho in favor of Ha: There is a statistically significant Deaths effect on odds of winning at the .05 confidence level.
+
+**Informal:** There is a statistically significant Deaths effect on odds of winning(p-value = .000141).
+
+**Effect: ** holding all else constant, for a 1 unit increase in Deaths, we estimate an expected 25.1% decrease in odds of winning(95% CI: 13.9, 36.2). 
+
+### Assists
+
+**Ho:**There is no statistically significant Assists effect on odds of winning.
+
+**Ha:**There is a statistically significant Assists effect on odds of winning.
+
+**z-value:** 3.006
+**p-value:** .002649
+**Formal:** We reject Ho in favor of Ha: There is a statistically significant Assists effect on odds of winning at the .05 significance level
+
+**Informal:** There is a statistically significant Assists effect on odds of winning(p-value = .0026).
+
+**Effect:** holding all else constant, for a 1 unit increase in Assists, we estimate an expected decrease in odds of winning by 37.1%(95% CI: 12.7, 70.4).
+
+### Headshots Landed
+
+**Ho:**There is no statistically significant headshotsLanded effect on odds of winning.
+
+**Ha:**There is a statistically significant headshotsLanded effect on odds of winning.
+
+**z value:** 1.057
+
+**p-value: ** .290
+
+**Formal Conclusion:** We fail to reject Ho: There is no statistically significant headshotsLanded effect on odds of winning at the .05 significance level.
+
+**Informal Conclusion:** There is no statistically significant headshotsLanded effect on odds of winning(p-value = .290).
+
+**Effect: ** Holding all else constant, for a 1 unit increase in headshotsLanded, we estimate an expected increase in odds of winning by 5.5%(95% CI: -4.4, 16.6). However, there is not enough evidence to support a headshotsLanded effect.
+
+### Kills Per Minute
+
+**Ho:**There is no statistically significant killsPerMinute effect on odds of winning.
+
+**Ha:**There is a statistically significant killsPerMinute effect on odds of winning.
+
+**z value:** -0.245
+
+**p-value: ** .807
+
+**Formal Conclusion:** We fail to reject Ho:There is no statistically significant killsPerMinute effect on odds of winning at the .05 significance level.
+
+**Informal Conclusion:** There is no statistically significant killsPerMinute effect on odds of winning(p-value = .807)
+
+**Effect: ** Holding all else constant, for a 1 unit increase in killsPerMinute, we estimate an expected decrease in odds of winning by 11.6%(95% CI: -66.9, 141.96). However, there is not enough evidence to support a killsPerMinute effect.
+
+### Distance Portaled
+
+**Ho:**There is no statistically significant distancePortaled effect on odds of winning
+
+**Ha:**There is a statistically significant distancePortaled effect on odds of winning
+
+**z value:** .924
+
+**p-value: ** .356
+
+**Formal Conclusion:** We fail to reject Ho:There is no statistically significant distancePortaled effect on odds of winning at the .05 significance level
+
+**Informal Conclusion:** There is no statistically significant distancePortaled effect on odds of winning(p-value = .356)
+
+**Effect: ** Holding all else constant, for a 1 unit increase in distancePortaled, we estimate an expected increase in odds of winning by 5.5%(95% CI: -4.4, 16.6). However, there is not enough evidence to support a headshotsLanded effect.
+
+### Portals Spawned
+
+**Ho:**There is no statistically significant headshotsLanded effect on odds of winning
+
+**Ha:**There is a statistically significant headshotsLanded effect on odds of winning
+
+**z value:** 1.057
+
+**p-value: ** .290
+
+**Formal Conclusion:** We fail to reject Ho:There is no statistically significant headshotsLanded effect on odds of winning at the .05 significance level
+
+**Informal Conclusion:** There is no statistically significant headshotsLanded effect on odds of winning(p-value = .290)
+
+**Effect: ** Holding all else constant, for a 1 unit increase in headshotsLanded, we estimate an expected increase in odds of winning by 5.5%(95% CI: -4.4, 16.6). However, there is not enough evidence to support a headshotsLanded effect.
+
+### Damage Dealt
+
+**Ho:**There is no statistically significant headshotsLanded effect on odds of winning
+
+**Ha:**There is a statistically significant headshotsLanded effect on odds of winning
+
+**z value:** 1.057
+
+**p-value: ** .290
+
+**Formal Conclusion:** We fail to reject Ho:There is no statistically significant headshotsLanded effect on odds of winning at the .05 significance level
+
+**Informal Conclusion:** There is no statistically significant headshotsLanded effect on odds of winning(p-value = .290)
+
+**Effect: ** Holding all else constant, for a 1 unit increase in headshotsLanded, we estimate an expected increase in odds of winning by 5.5%(95% CI: -4.4, 16.6). However, there is not enough evidence to support a headshotsLanded effect.
+
+
+
+
+
+
